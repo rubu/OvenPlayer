@@ -14,7 +14,7 @@ import {
 } from "api/constants";
 
 
-const WebRTCLoader = function (provider, webSocketUrl, resetCallback, loadCallback, errorTrigger) {
+const WebRTCLoader = function (provider, webSocketUrl, loadCallback, errorTrigger) {
 
     const peerConnectionConfig = {
         'iceServers': [{
@@ -373,7 +373,8 @@ const WebRTCLoader = function (provider, webSocketUrl, resetCallback, loadCallba
                         mainPeerConnectionInfo.peerConnection.close();
                         mainPeerConnectionInfo = null;
 
-                        resetCallback();
+                        //resetCallback();
+                        provider.pause();
 
                         sendMessage(ws, {
                             command: 'request_offer'
@@ -398,10 +399,13 @@ const WebRTCLoader = function (provider, webSocketUrl, resetCallback, loadCallba
             };
 
             ws.onerror = function (error) {
-                let tempError = ERRORS[PLAYER_WEBRTC_WS_ERROR];
-                tempError.error = error;
-                closePeer(tempError);
-                reject(error);
+                //Why Edge Browser calls onerror() when ws.close()?
+                if(!wsClosedByPlayer){
+                    let tempError = ERRORS[PLAYER_WEBRTC_WS_ERROR];
+                    tempError.error = error;
+                    closePeer(tempError);
+                    reject(error);
+                }
             };
 
         } catch (error) {
