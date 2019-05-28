@@ -104,7 +104,6 @@ const Listener = function(element, mse, provider, videoEndedCallback){
             duration: isLive ?  Infinity : elVideo.duration,
             type :type
         };
-
         OvenPlayerConsole.log("EventListener : on loadedmetadata", metadata);
         provider.trigger(CONTENT_META, metadata);
     };
@@ -124,10 +123,12 @@ const Listener = function(element, mse, provider, videoEndedCallback){
             return false;
         }
         OvenPlayerConsole.log("EventListener : on pause");
+
         provider.setState(STATE_PAUSED);
     };
 
     lowLevelEvents.play = () => {
+
         //Fires when the audio/video has been started or is no longer paused
         stalled = -1;
         if (!elVideo.paused && provider.getState() !== STATE_PLAYING) {
@@ -170,6 +171,7 @@ const Listener = function(element, mse, provider, videoEndedCallback){
         if (isNaN(duration)) {
             return;
         }
+
         if(!provider.isSeeking() && !elVideo.paused && (provider.getState() === STATE_STALLED || provider.getState() === STATE_LOADING || provider.getState() === STATE_AD_PLAYING) &&
             !compareStalledTime(stalled, position) ){
             stalled = -1;
@@ -199,7 +201,6 @@ const Listener = function(element, mse, provider, videoEndedCallback){
         OvenPlayerConsole.log("EventListener : on seeked");
         provider.setSeeking(false);
         provider.trigger(CONTENT_SEEKED);
-        provider.setState(STATE_IDLE);
     };
 
     lowLevelEvents.stalled = () => {
