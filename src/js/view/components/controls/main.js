@@ -29,7 +29,7 @@ const Controls = function($container, api){
 
     let webrtc_is_p2p_mode = false;
     let isLiveMode = false;
-
+    let isAndroid = api.getConfig().browser.os === "Android";
 
     const $root = LA$("#"+api.getContainerId());
     let lastContentMeta = {};
@@ -78,8 +78,7 @@ const Controls = function($container, api){
 
         let initControlUI = function(metadata){
             initTimeDisplay(metadata);
-
-            if(api.getFramerate() > 0){
+            if(api.getFramerate && api.getFramerate() > 0){
                 //initFrameJumpButtons();
             }else{
                 if(frameButtons){
@@ -88,6 +87,7 @@ const Controls = function($container, api){
             }
 
             if(metadata.duration === Infinity){
+                OvenPlayerConsole.log("[[[[LIVE MODE]]]]");
                 isLiveMode = true;
                 //live
                 if(progressBar){
@@ -99,28 +99,31 @@ const Controls = function($container, api){
             }
         };
 
-
-
-
         api.on(CONTENT_META, function(data){
             initialDuration = data.duration;
 
             lastContentMeta = data;
             data.isP2P = webrtc_is_p2p_mode;
-            initControlUI(data);
 
+            initControlUI(data);
         }, template);
 
-        //Android HLS native doesn't give duration on CONTENT_META. why?
-        //Fortunately I have CONTENT_TIME.
-        if(api.getConfig().browser.os === "Android"){
-            api.on(CONTENT_TIME, function(metadata_for_when_after_playing){
-                if(!initialDuration && initialDuration !== metadata_for_when_after_playing.duration){
+        api.on(CONTENT_TIME, function(metadata_for_when_after_playing){
+
+            //Android HLS native doesn't give duration on CONTENT_META. why?
+            //Fortunately I have CONTENT_TIME.
+
+            //RTMP too.
+            if( isAndroid || (api && api.getProviderName && api.getProviderName() === "rtmp") ){
+                if(!initialDuration || (initialDuration && (initialDuration !== metadata_for_when_after_playing.duration))){
                     lastContentMeta = metadata_for_when_after_playing;
                     initControlUI(metadata_for_when_after_playing);
                 }
-            }, template);
-        }
+            }
+
+        }, template);
+
+
 
         api.on("resize", function(size){
             setPanelMaxHeight();
@@ -133,6 +136,7 @@ const Controls = function($container, api){
 
 
         api.on(AD_CHANGED, function(ad){
+
             if(ad.isLinear){
                 if(progressBar){
                     progressBar.destroy();

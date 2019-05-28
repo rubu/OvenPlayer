@@ -114,7 +114,6 @@ const Listener = function(adsManager, provider, adsSpec, OnAdError){
             duration: remainingTime,
             type :"ad"
         };*/
-
         provider.trigger(STATE_AD_LOADED, {remaining : remainingTime, isLinear : ad.isLinear() });
 
     };
