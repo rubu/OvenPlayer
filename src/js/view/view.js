@@ -167,6 +167,14 @@ const View = function($container){
                 //togglePlayPause();
             }
         },
+        //For iOS safari
+        "touchstart .ovenplayer" : function(event, $current, template){
+            if (playerState === STATE_PLAYING || (playerState === STATE_AD_PLAYING && screenSize === "xsmall")) {
+                setHide(false, true);
+            } else {
+                setHide(false);
+            }
+        },
         "mouseenter .ovenplayer" : function(event, $current, template){
             event.preventDefault();
 
@@ -242,7 +250,7 @@ const View = function($container){
         },
         "contextmenu .ovenplayer" : function(event, $current, template){
             event.stopPropagation();
-            return false;
+
             if(!LA$(event.currentTarget).find("object")){
                 event.preventDefault();
                 createContextPanel(event.pageX, event.pageY);

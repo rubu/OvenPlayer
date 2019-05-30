@@ -8,7 +8,8 @@ import {
     STATE_AD_LOADED,
     STATE_AD_PLAYING,
     STATE_AD_PAUSED,
-    PLAYER_FULLSCREEN_CHANGED
+    PLAYER_FULLSCREEN_CHANGED,
+    PLAYER_FULLSCREEN_REQUEST
 } from "api/constants";
 
 
@@ -19,6 +20,8 @@ const FullScreenButton = function($container, api){
     let browserInfo = api.getBrowser();
     let isIos = browserInfo.os === "iOS"; // && browserInfo.browser === "Safari";
     let isAndroid = browserInfo.os === "Android";
+    let fullscreenChagedEventName = ""; //For IE11
+    let isForceMode = false;    //This means to look like for fullscreen.
 
     let fullScreenEventTypes = {
         onfullscreenchange : "fullscreenchange",
@@ -28,7 +31,7 @@ const FullScreenButton = function($container, api){
     };
 
 
-    let fullScreenChangedCallback = function(event){
+    const fullScreenChangedCallback = function(){
         let checkFullScreen = function(){
             return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
         };
@@ -44,12 +47,55 @@ const FullScreenButton = function($container, api){
             $iconExpand.show();
             $iconCompress.hide();
         }
-
-
         api.trigger(PLAYER_FULLSCREEN_CHANGED, isFullScreen);
     };
 
+    const forcedFakeFullscreenToggle = function(){
+        if(!isFullScreen){
+            $root.addClass("ovp-fullscreen");
+            isFullScreen = true;
+            $iconExpand.hide();
+            $iconCompress.show();
+        }else{
+            $root.removeClass("ovp-fullscreen");
+            isFullScreen = false;
+            $iconExpand.show();
+            $iconCompress.hide();
+        }
+        api.trigger(PLAYER_FULLSCREEN_CHANGED, isFullScreen);
+    };
 
+    let findFullScreenChangedEventName = function(){
+        let rootElement =  $root.get();
+        let eventName = "";
+
+        if (rootElement.requestFullscreen) {
+            eventName = fullScreenEventTypes.onfullscreenchange;
+        } else if (rootElement.webkitRequestFullScreen) {
+            eventName = fullScreenEventTypes.onwebkitfullscreenchange;
+        } else if (rootElement.mozRequestFullScreen) {
+            eventName = fullScreenEventTypes.onmozfullscreenchange;
+        } else if (rootElement.msRequestFullscreen) {
+            eventName = fullScreenEventTypes.MSFullscreenChange;
+        }else{
+            Object.keys(fullScreenEventTypes).forEach(event => {
+                if(document[event]){
+                    eventName = event;
+                }
+            });
+        }
+        return eventName;
+
+        //This is original Code. IE11 doesn't follow rules. go to hell. IE11 returns "fullscreenchange". :(
+        /*
+         Object.keys(fullScreenEventTypes).forEach(eventName => {
+         if(document[eventName]){
+         console.log(eventName);
+         document.addEventListener(fullScreenEventTypes[eventName], fullScreenChangedCallback, false);
+         }
+         });
+         */
+    };
 
     let requestFullScreen = function () {
         let promise = "";
@@ -81,7 +127,6 @@ const FullScreenButton = function($container, api){
             }
             */
 
-
             if (rootElement.requestFullscreen) {
                 promise = rootElement.requestFullscreen();
             } else if (rootElement.webkitRequestFullScreen) {
@@ -100,17 +145,23 @@ const FullScreenButton = function($container, api){
         }
 
         if(promise){
-            promise.then().catch(function(error){
+            promise.then(function(){
+                isForceMode = false;
+            }).catch(function(error){
+
+                //This means to look like for fullscreen.
+                isForceMode = true;
+                forcedFakeFullscreenToggle();
+
 
                 //wait for User Interaction. It runs Chrome only.
                 //Because "fullscreen error" occures Chrome.
                 //Firefox can't runs this routine because "Element.requestFullscreen()이 짧게 실행되는 사용자 생성 이벤트 핸들러의 내부로부터 호출되지 않았기 때문에 전체화면 요청이 거부되었습니다.".
-
-                if(error.message === "fullscreen error"){
+                /*if(error.message === "fullscreen error"){
                     setTimeout(function(){
                         requestFullScreen();
                     },500);
-                }
+                }*/
             });
         }
     };
@@ -133,17 +184,19 @@ const FullScreenButton = function($container, api){
         if (!isFullScreen) {
             requestFullScreen();
         } else {
-            exitFullScreen();
+            if(isForceMode){
+                forcedFakeFullscreenToggle();
+            }else{
+                exitFullScreen();
+            }
         }
     };
-
 
     const onRendered = function($current, template){
         $iconExpand = $current.find(".ovp-fullscreen-button-expandicon");
         $iconCompress = $current.find(".ovp-fullscreen-button-compressicon");
 
-
-
+        fullscreenChagedEventName = findFullScreenChangedEventName();
 
         api.on(AD_CHANGED, function(ad){
             //force close for ios midroll
@@ -153,34 +206,17 @@ const FullScreenButton = function($container, api){
             }
         }, template);
 
-        //Bind Global(document) Event
-        Object.keys(fullScreenEventTypes).forEach(eventName => {
-            //Difference between undefined and null.
-            //undefined is not support. null is support but not inited.
-            if(document[eventName] === null){
-                document.addEventListener(fullScreenEventTypes[eventName], fullScreenChangedCallback);
-            }
-
-        });
-
+        document.addEventListener(fullscreenChagedEventName, fullScreenChangedCallback, false);
     };
     const onDestroyed = function(template){
-        //Unbind Global(document) Event
-        Object.keys(fullScreenEventTypes).forEach(eventName => {
-            if(document[eventName] === null){
-                document.removeEventListener(fullScreenEventTypes[eventName], fullScreenChangedCallback);
-            }
-
-        });
+        document.removeEventListener(fullscreenChagedEventName, fullScreenChangedCallback);
         api.off(AD_CHANGED, null, template);
     };
     const events = {
         "click .ovp-fullscreen-button" : function(event, $current, template){
             event.preventDefault();
-
+                api.trigger(PLAYER_FULLSCREEN_REQUEST, null);
                 toggleFullScreen();
-
-
         }
     };
 

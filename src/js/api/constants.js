@@ -42,6 +42,8 @@ export const PLAYER_COMPLETE = STATE_COMPLETE;
 export const PLAYER_PAUSE = "pause";
 export const PLAYER_PLAY = "play";
 export const PLAYER_RESIZED = "resized";
+export const PLAYER_LOADING = "loading";
+export const PLAYER_FULLSCREEN_REQUEST = "fullscreenRequested";
 export const PLAYER_FULLSCREEN_CHANGED = "fullscreenChanged";
 
 export const AD_CHANGED = "adChanged";
@@ -81,7 +83,7 @@ export const PLAYER_WEBRTC_NETWORK_SLOW = 510;
 export const ERRORS = {
     100 : {code : 100 , message : "Can not load due to unknown reasons.", reason :"Can not load due to unknown reasons."},
     101 : {code : 101 , message : "Can not load due to unsupported media.", reason :"Can not load due to unsupported media."},
-    102 : {code : 102 , message : "Flash fetching process aborted. <a href='http://www.adobe.com/go/getflashplayer' target='_self'><img src='http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif' alt='Get Adobe Flash player'></a>", reason :"It looks like not found swf or your environment is localhost."},
+    102 : {code : 102 , message : "Flash fetching process aborted. </br><a href='http://www.adobe.com/go/getflashplayer' target='_self'><img src='http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif' alt='Get Adobe Flash player'></a>", reason :"It looks like not found swf or your environment is localhost."},
     103 : {code : 103 , message : "Can not load due to dashjs. Please check the lastest version.", reason :"dash.js version is old. Please check the lastest."},
     300 : {code : 300 , message : "Can not play due to unknown reasons.", reason :"Can not play due to unknown reasons."},
     301 : {code : 301 , message : "Fetching process aborted by user.", reason :"Fetching process aborted by user."},

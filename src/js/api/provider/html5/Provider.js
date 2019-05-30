@@ -6,7 +6,7 @@ import EventEmitter from "api/EventEmitter";
 import EventsListener from "api/provider/html5/Listener";
 import {extractVideoElement, separateLive, pickCurrentSource} from "api/provider/utils";
 import {
-    STATE_IDLE, STATE_PLAYING, STATE_PAUSED, STATE_COMPLETE,
+    STATE_IDLE, STATE_PLAYING, STATE_PAUSED, STATE_COMPLETE, STATE_ERROR,
     PLAYER_STATE, PLAYER_COMPLETE, PLAYER_PAUSE, PLAYER_PLAY, STATE_AD_PLAYING,
     CONTENT_TIME, CONTENT_CAPTION_CUE_CHANGED, CONTENT_SOURCE_CHANGED,
     PLAYBACK_RATE_CHANGED, CONTENT_MUTE, PROVIDER_HTML5, PROVIDER_WEBRTC, PROVIDER_DASH, PROVIDER_HLS
@@ -28,7 +28,8 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
 
     let elVideo = spec.element;
     let ads = null, listener = null, videoEndedCallback = null;
-    let posterImage = playerConfig.getConfig().image||"";
+
+    let isPlayingProcess = false;
 
     if(spec.adTagUrl){
         ads = Ads(elVideo, that, playerConfig, spec.adTagUrl);
@@ -66,6 +67,13 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
 
             if(lastPlayPosition > 0){
                 that.seek(lastPlayPosition);
+                if(!playerConfig.isAutoStart()){
+                    that.play();
+                }
+
+            }
+
+            if(playerConfig.isAutoStart()){
                 that.play();
             }
             /*that.trigger(CONTENT_SOURCE_CHANGED, {
@@ -94,6 +102,11 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
     that.setState = (newState) => {
         if(spec.state !== newState){
             let prevState = spec.state;
+
+            //ToDo : This is temporary code. avoid background content error.
+            if(prevState === STATE_AD_PLAYING && (newState === STATE_ERROR || newState === STATE_IDLE) ){
+                return false;
+            }
             switch(newState){
                 case STATE_COMPLETE :
                     that.trigger(PLAYER_COMPLETE);
@@ -192,11 +205,6 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
         _load(lastPlayPosition || 0);
 
         return new Promise(function (resolve, reject) {
-
-
-            if(playerConfig.isAutoStart()){
-                that.play();
-            }
             if(playerConfig.isMute()){
                 that.setMute(true);
             }
@@ -218,13 +226,19 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
         if(!elVideo){
             return false;
         }
-
+        if(isPlayingProcess){
+            return false;
+        }
+        isPlayingProcess = true;
         if(that.getState() !== STATE_PLAYING){
             if (  (ads && ads.isActive()) || (ads && !ads.started()) ) {
                 ads.play().then(_ => {
                     //ads play success
+                    isPlayingProcess = false;
                 }).catch(error => {
                     //ads play fail maybe cause user interactive less
+                    isPlayingProcess = false;
+                    console.log(error);
                 });
 
             }else{
@@ -244,10 +258,12 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                         if (promise !== undefined) {
                             promise.then(_ => {
                                 // started!
+                                isPlayingProcess = false;
                             }).catch(error => {
                                 //Can't play because User doesn't any interactions.
                                 //Wait for User Interactions. (like click)
                                 setTimeout(function () {
+                                    isPlayingProcess = false;
                                     that.play();
                                 }, 100);
 
@@ -260,10 +276,12 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                     if (promise !== undefined) {
                         promise.then(_ => {
                             // started!
+                            isPlayingProcess = false;
                         }).catch(error => {
                             //Can't play because User doesn't any interactions.
                             //Wait for User Interactions. (like click)
                             setTimeout(function () {
+                                isPlayingProcess = false;
                                 that.play();
                             }, 100);
 
