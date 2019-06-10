@@ -29,7 +29,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
     let elVideo = spec.element;
     let ads = null, listener = null, videoEndedCallback = null;
 
-    let isPlayingProcess = false;
+    let isPlayingProcessing = false;
 
     if(spec.adTagUrl){
         ads = Ads(elVideo, that, playerConfig, spec.adTagUrl);
@@ -246,81 +246,43 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
         if(!elVideo){
             return false;
         }
-        if(isPlayingProcess){
+        if(isPlayingProcessing){
             return false;
         }
-        isPlayingProcess = true;
+        isPlayingProcessing = true;
         if(that.getState() !== STATE_PLAYING){
             if (  (ads && ads.isActive()) || (ads && !ads.started()) ) {
                 ads.play().then(_ => {
                     //ads play success
-                    isPlayingProcess = false;
+                    isPlayingProcessing = false;
                 }).catch(error => {
                     //ads play fail maybe cause user interactive less
-                    isPlayingProcess = false;
+                    isPlayingProcessing = false;
                     console.log(error);
                 });
 
             }else{
-                /*
-                * It is not necessary no more. Maybe Google ima updated 3.310.0	or 3.309.0. https://developers.google.com/interactive-media-ads/docs/sdks/html5/v3/history
-                if(ads && !dashAttachedView){
-                    //Ad steals dash's video element. Put in right place.
-                    spec.mse.attachView(elVideo);
-                    dashAttachedView = true;
-                }*/
                 let promise = elVideo.play();
                 if (promise !== undefined) {
                     promise.then(function(){
-                        isPlayingProcess = false;
+                        isPlayingProcessing = false;
                     }).catch(error => {
                         if(playerConfig.getBrowser().browser  === "Safari" || playerConfig.getBrowser().os  === "iOS" || playerConfig.getBrowser().os  === "Android"){
                             elVideo.muted = true;
                         }
-                        console.log(error);
                         //Can't play because User doesn't any interactions.
                         //Wait for User Interactions. (like click)
                         setTimeout(function () {
-                            isPlayingProcess = false;
+                            isPlayingProcessing = false;
                             that.play();
                         }, 100);
 
                     });
+                }else{
+                    //IE promise is undefinded.
+                    isPlayingProcessing = false;
                 }
 
-                //No more setTimeout playing.
-                /*if(that.getName() === PROVIDER_DASH){
-                    if(ads && !dashAttachedView){
-                        //Ad steals dash's video element. Put in right place.
-                        spec.mse.attachView(elVideo);
-                        dashAttachedView = true;
-                    }
-
-                    //I was starting the stream by calling play(). (Autoplay was turned off)
-                    //the video freeze for live. like this https://github.com/Dash-Industry-Forum/dash.js/issues/2184
-                    //My guess is user interective...
-                    //This is temporary until i will find perfect solution.
-                    setTimeout(function(){
-                        let promise = elVideo.play();
-                        if (promise !== undefined) {
-                            promise.then(function(){
-                                isPlayingProcess = false;
-                            }).catch(error => {
-                                if(playerConfig.getBrowser().browser  === "Safari" || playerConfig.getBrowser().os  === "iOS" || playerConfig.getBrowser().os  === "Android"){
-                                    elVideo.muted = true;
-                                }
-                                //Can't play because User doesn't any interactions.
-                                //Wait for User Interactions. (like click)
-                                setTimeout(function () {
-                                    isPlayingProcess = false;
-                                    that.play();
-                                }, 100);
-
-                            });
-
-                        }
-                    },500);
-                }*/
             }
 
         }
