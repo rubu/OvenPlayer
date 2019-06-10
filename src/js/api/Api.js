@@ -41,7 +41,8 @@ const Api = function(container){
         let nextPlaylistIndex = index; // || playlistManager.getCurrentPlaylistIndex() + 1;
         let playlist = playlistManager.getPlaylist();
         let hasNextPlaylist = playlist[nextPlaylistIndex]? true : false;
-
+        //init source index
+        playerConfig.setSourceIndex(0);
         if(hasNextPlaylist){
             //that.pause();
             lazyQueue = LazyCommandExecutor(that, ['play','seek','stop']);
@@ -66,9 +67,12 @@ const Api = function(container){
                     if (sources[i].default) {
                         quality = i;
                     }
-                    if (playerConfig.getSourceLabel() && sources[i].label === playerConfig.getSourceLabel() ) {
+                    if (playerConfig.getSourceIndex() === i ) {
                         return i;
                     }
+                    /*if (playerConfig.getSourceLabel() && sources[i].label === playerConfig.getSourceLabel() ) {
+                        return i;
+                    }*/
                 }
             }
             return quality;
@@ -119,12 +123,11 @@ const Api = function(container){
                 //Auto switching next source when player load failed by amiss source.
                 //data.code === PLAYER_FILE_ERROR
                 if( name === ERROR || name === NETWORK_UNSTABLED ){
-                    let currentSourceIndex = that.getCurrentSource();
-                    if(currentSourceIndex+1 < that.getSources().length){
+                    //let currentSourceIndex = that.getCurrentSource();
+                    if(playerConfig.getSourceIndex()+1 < that.getSources().length){
                         //this sequential has available source.
                         that.pause();
-
-                        that.setCurrentSource(currentSourceIndex+1);
+                        that.setCurrentSource(playerConfig.getSourceIndex()+1);
                     }
                 }
             });

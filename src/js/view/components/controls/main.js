@@ -17,6 +17,7 @@ import {
     CONTENT_META, CONTENT_LEVEL_CHANGED, CONTENT_TIME_MODE_CHANGED, CONTENT_TIME, PLAYER_PLAY,
     STATE_AD_LOADED,
     AD_CHANGED,
+    STATE_AD_ERROR,
     STATE_AD_PLAYING,
     STATE_AD_PAUSED,
     STATE_AD_COMPLETE,
@@ -69,15 +70,14 @@ const Controls = function($container, api){
             if(settingButton){
                 settingButton.destroy();
             }
-
-            settingButton = SettingButton($current.find(".setting"), api);
+            settingButton = SettingButton($current.find(".setting-holder"), api);
         };
 
         let initFullscreenButton = function(){
             if(fullScreenButton){
                 fullScreenButton.destroy();
             }
-            fullScreenButton = FullScreenButton($current.find(".fullscreen"), api);
+            fullScreenButton = FullScreenButton($current.find(".fullscreen-holder"), api);
         };
 
         playButton = PlayButton($current.find(".ovp-left-controls"), api);
@@ -88,6 +88,8 @@ const Controls = function($container, api){
         let playlist = api.getPlaylist();
         let currentPlaylistIndex = api.getCurrentPlaylist();
 
+
+        //ToDo : Sometimes ad init failed.
         if(playlist && playlist[currentPlaylistIndex] && playlist[currentPlaylistIndex].adTagUrl){
 
         }else{
@@ -128,6 +130,8 @@ const Controls = function($container, api){
 
         /*
         * I think do not nessessary this code anymore. Because muted play solves everything. 2019-06-04
+
+        */
         api.on(CONTENT_TIME, function(metadata_for_when_after_playing){
 
             //Android HLS native doesn't give duration on CONTENT_META. why?
@@ -135,7 +139,6 @@ const Controls = function($container, api){
 
             //RTMP too.
             if( isAndroid || (api && api.getProviderName && api.getProviderName() === "rtmp") ){
-                console.log("metadata_for_when_after_playing", metadata_for_when_after_playing.duration);
                 if(!initialDuration || (initialDuration && (initialDuration !== metadata_for_when_after_playing.duration))){
                     lastContentMeta = metadata_for_when_after_playing;
                     initControlUI(metadata_for_when_after_playing);
@@ -143,8 +146,6 @@ const Controls = function($container, api){
             }
 
         }, template);
-        */
-
 
         api.on("resize", function(size){
             setPanelMaxHeight();
@@ -154,7 +155,7 @@ const Controls = function($container, api){
             webrtc_is_p2p_mode = isP2P;
         }, template);
 
-        api.on(PLAYER_PLAY, function(){
+        api.on(PLAYER_PLAY, function(data){
             $current.css("display", "block");
         }, template);
 
@@ -177,6 +178,7 @@ const Controls = function($container, api){
             }
         }, template);
 
+        //ToDo : Same Code refactor
         api.on(STATE_AD_COMPLETE, function(){
             initTimeDisplay(lastContentMeta);
             if(progressBar){
@@ -192,7 +194,19 @@ const Controls = function($container, api){
 
         }, template);
 
+        api.on(STATE_AD_ERROR , function(){
+            initTimeDisplay(lastContentMeta);
+            if(progressBar){
+                progressBar.destroy();
+            }
+            $root.removeClass("linear-ad");
+            initSettingButton();
+            if(isLiveMode){
 
+            }else{
+                initProgressBar(false);
+            }
+        },template);
 
     };
     const onDestroyed = function(template){
@@ -201,6 +215,7 @@ const Controls = function($container, api){
         api.off(STATE_AD_COMPLETE, null, template);
         api.off(AD_CHANGED, null, template);
         api.off(OME_P2P_MODE, null, template);
+        api.off(STATE_AD_ERROR, null, template);
         if(timeDisplay){
             timeDisplay.destroy();
         }
