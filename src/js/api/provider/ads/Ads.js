@@ -12,6 +12,7 @@ import {
     STATE_AD_ERROR,
     PLAYER_WARNING,
     WARN_MSG_MUTEDPLAY,
+    STATE_AD_LOADING,
     UI_ICONS
 } from "api/constants";
 
@@ -172,13 +173,19 @@ const Ads = function(elVideo, provider, playerConfig, adTagUrl, errorCallback){
                 playPromise.then(function(){
                     // If we make it here, unmuted autoplay works.
                     elVideo.pause();
-
                     autoplayAllowed = true;
                     autoplayRequiresMuted = false;
                     spec.checkAutoplayStart = false;
                     initRequest();
 
-                }).catch(function(){
+                }).catch(function(error){
+                    autoplayAllowed = false;
+                    autoplayRequiresMuted = false;
+                    spec.checkAutoplayStart = false;
+                    initRequest();
+
+                    /*
+                    //Disable Muted Play
                     elVideo.muted = true;
                     var playPromise = elVideo.play();
                     if (playPromise !== undefined) {
@@ -189,7 +196,7 @@ const Ads = function(elVideo, provider, playerConfig, adTagUrl, errorCallback){
                             autoplayRequiresMuted = true;
                             spec.checkAutoplayStart = false;
                             initRequest();
-                        }).catch(function () {
+                        }).catch(function (error) {
                             // Both muted and unmuted autoplay failed. Fall back to click to play.
                             elVideo.muted = false;
                             autoplayAllowed = false;
@@ -197,7 +204,7 @@ const Ads = function(elVideo, provider, playerConfig, adTagUrl, errorCallback){
                             spec.checkAutoplayStart = false;
                             initRequest();
                         });
-                    }
+                    }*/
                 });
             }else{
                 //Maybe this is IE11....
@@ -208,8 +215,8 @@ const Ads = function(elVideo, provider, playerConfig, adTagUrl, errorCallback){
                 initRequest();
             }
         }
-        checkAutoplaySupport();
 
+        checkAutoplaySupport();
         that.isActive = () => {
             return spec.active;
         };
@@ -231,12 +238,13 @@ const Ads = function(elVideo, provider, playerConfig, adTagUrl, errorCallback){
 
             }else{
                 let retryCount = 0;
+                //provider.setState(STATE_AD_LOADING);
                 return new Promise(function (resolve, reject) {
                     (function checkAdsManagerIsReady(){
                         retryCount ++;
                         if(adsManagerLoaded){
                             if((playerConfig.isAutoStart() && !autoplayAllowed) ){
-                                autoplayAllowed = true;
+                                autoplayAllowed = true; //autoplay fail. set forced autoplayAllowed
                                 spec.started = false;
                                 reject(new Error(AUTOPLAY_NOT_ALLOWED));
                             }else{

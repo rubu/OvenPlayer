@@ -14,6 +14,7 @@ import {
     CONTENT_LEVEL_CHANGED,
     PROVIDER_DASH, CONTENT_META
 } from "api/constants";
+import _ from "utils/underscore";
 
 /**
  * @brief   dashjs provider extended core.
@@ -56,6 +57,7 @@ const Dash = function(element, playerConfig, adTagUrl){
         }
         dash.getDebug().setLogToBrowserConsole(false);
         dash.initialize(element, null, false);
+        dashsetABRStrategy ( "abrThroughput");
 
         let spec = {
             name : PROVIDER_DASH,
@@ -114,23 +116,25 @@ const Dash = function(element, playerConfig, adTagUrl){
             }
         });
         dash.on(dashjs.MediaPlayer.events.PLAYBACK_METADATA_LOADED, function(event){
-            OvenPlayerConsole.log("GetStreamInfo  : ", dash.getQualityFor("video"), dash.getBitrateInfoListFor('video'), dash.getBitrateInfoListFor('video')[dash.getQualityFor("video")]);
-            console.log("PLAYBACK_METADATA_LOADED");
+            OvenPlayerConsole.log("PLAYBACK_METADATA_LOADED  : ", dash.getQualityFor("video"), dash.getBitrateInfoListFor('video'), dash.getBitrateInfoListFor('video')[dash.getQualityFor("video")]);
+
             isDashMetaLoaded = true;
             let subQualityList = dash.getBitrateInfoListFor('video');
             spec.currentQuality = dash.getQualityFor("video");
             for(let i = 0; i < subQualityList.length; i ++){
-                spec.qualityLevels.push({
-                    bitrate: subQualityList[i].bitrate,
-                    height: subQualityList[i].height,
-                    width: subQualityList[i].width,
-                    index: subQualityList[i].qualityIndex,
-                    label : subQualityList[i].width+"x"+subQualityList[i].height+", "+ sizeHumanizer(subQualityList[i].bitrate, true, "bps")
-                });
+                if(!_.findWhere(spec.qualityLevels,{bitrate : subQualityList[i].bitrate, height: subQualityList[i].height,width: subQualityList[i].width})){
+                    spec.qualityLevels.push({
+                        bitrate: subQualityList[i].bitrate,
+                        height: subQualityList[i].height,
+                        width: subQualityList[i].width,
+                        index: subQualityList[i].qualityIndex,
+                        label : subQualityList[i].width+"x"+subQualityList[i].height+", "+ sizeHumanizer(subQualityList[i].bitrate, true, "bps")
+                    });
+                }
             }
 
             if(dash.isDynamic()){
-                //islive
+                spec.isLive = true;
             }
             if(seekPosition_sec){
                 dash.seek(seekPosition_sec);
@@ -146,7 +150,7 @@ const Dash = function(element, playerConfig, adTagUrl){
         });
 
         //Dash will infinite loading when player is in a paused state for a long time.
-        that.play = () =>{
+        that.play = (mutedPlay) =>{
             isDashMetaLoaded = false;
             dash.attachView(element);
 
@@ -155,7 +159,7 @@ const Dash = function(element, playerConfig, adTagUrl){
             (function checkDashMetaLoaded(){
                 retryCount ++;
                 if(isDashMetaLoaded){
-                    superPlay_func();
+                    superPlay_func(mutedPlay);
                 }else{
 
                     if(retryCount < 300){
