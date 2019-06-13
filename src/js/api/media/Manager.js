@@ -118,12 +118,23 @@ const Manager = function(container, browserInfo){
     };
 
     that.createMedia = (providerName , playerConfig)  => {
-        if(videoElement){
-            that.empty();
+        if( providerName === PROVIDER_RTMP ){
+            if(videoElement){
+                that.empty();
+            }
+            return createFlashVideo(playerConfig.isLoop(), playerConfig.getRtmpBufferTime(), playerConfig.getRtmpBufferTimeMax());
+        }else{
+            if(videoElement){
+                that.empty();
+                //reuse video element.
+                //becuase playlist is auto next playing.
+                //Only same video element does not require User Interaction Error.
+                //ToDo : refactoring
+                return videoElement;
+            }else{
+                return createHtmlVideo(playerConfig.isLoop());
+            }
         }
-
-        return providerName === PROVIDER_RTMP ? createFlashVideo(playerConfig.isLoop(), playerConfig.getRtmpBufferTime(), playerConfig.getRtmpBufferTimeMax())
-            : createHtmlVideo(playerConfig.isLoop());
     }
 
     that.createAdContainer = () => {

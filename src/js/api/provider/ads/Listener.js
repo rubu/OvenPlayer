@@ -31,6 +31,8 @@ import {
     PLAYER_UNKNWON_DECODE_ERROR,
     PLAYER_FILE_ERROR,
     PLAYER_STATE,
+    PLAYER_CLICKED,
+    PLAYER_AD_CLICK,
     PROVIDER_HTML5,
     PROVIDER_WEBRTC,
     PROVIDER_DASH,
@@ -85,7 +87,10 @@ const Listener = function(adsManager, provider, adsSpec, OnAdError){
         }
 
     };
-    lowLevelEvents[AD_ERROR] = OnAdError;
+    lowLevelEvents[AD_ERROR] = (adEvent) => {
+        isAllAdCompelete = true;
+        OnAdError(adEvent);
+    } ;
 
     lowLevelEvents[ALL_ADS_COMPLETED] = (adEvent) => {
         OvenPlayerConsole.log(adEvent.type);
@@ -96,6 +101,7 @@ const Listener = function(adsManager, provider, adsSpec, OnAdError){
     };
     lowLevelEvents[CLICK] = (adEvent) => {
         OvenPlayerConsole.log(adEvent.type);
+        provider.trigger(PLAYER_CLICKED, {type : PLAYER_AD_CLICK});
     };
     lowLevelEvents[FIRST_QUARTILE] = (adEvent) => {
         OvenPlayerConsole.log(adEvent.type);

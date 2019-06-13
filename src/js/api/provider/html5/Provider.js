@@ -39,6 +39,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
             console.log("Can not load due to google ima for Ads.");
         }
     }
+
     listener = EventsListener(elVideo, that, ads ? ads.videoEndedCallback : null);
     elVideo.playbackRate = elVideo.defaultPlaybackRate = playerConfig.getPlaybackRate();
 
@@ -51,6 +52,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
         }
         if(onExtendedLoad){
             onExtendedLoad(source, lastPlayPosition);
+
         }else{
             OvenPlayerConsole.log("source loaded : ", source, "lastPlayPosition : "+ lastPlayPosition);
             let previousSource = elVideo.src;
@@ -112,52 +114,63 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
         if(spec.state !== newState){
             let prevState = spec.state;
 
+            OvenPlayerConsole.log("Provider : setState()", newState, "isAdsCheckingtime :", (ads && ads.isAutoPlaySupportCheckTime()));
+
             //ToDo : This is temporary code. avoid background content error.
             if(prevState === STATE_AD_PLAYING && (newState === STATE_ERROR || newState === STATE_IDLE) ){
                 return false;
             }
+            if((prevState === STATE_AD_PLAYING || prevState === STATE_AD_PAUSED ) && (newState === STATE_PAUSED || newState === STATE_PLAYING)){
+                return false;
+            }
+            OvenPlayerConsole.log("Provider : triggerSatatus", newState);
 
+            switch(newState){
+                case STATE_COMPLETE :
+                    that.trigger(PLAYER_COMPLETE);
+                    break;
+                case STATE_PAUSED :
+                    that.trigger(PLAYER_PAUSE, {
+                        prevState: spec.state,
+                        newstate: STATE_PAUSED
+                    });
+                    break;
+                case STATE_AD_PAUSED :
+                    that.trigger(PLAYER_PAUSE, {
+                        prevState: spec.state,
+                        newstate: STATE_AD_PAUSED
+                    });
+                    break;
+                case STATE_PLAYING :
+                    that.trigger(PLAYER_PLAY, {
+                        prevState: spec.state,
+                        newstate: STATE_PLAYING
+                    });
+                case STATE_AD_PLAYING :
+                    that.trigger(PLAYER_PLAY, {
+                        prevState: spec.state,
+                        newstate: STATE_AD_PLAYING
+                    });
+                    break;
+            }
+            spec.state = newState;
+            that.trigger(PLAYER_STATE, {
+                prevstate : prevState,
+                newstate: spec.state
+            });
 
-            if(ads && ads.isAutoPlaySupportCheckTime()){
+            /*
+            if(newState === STATE_AD_PLAYING || newState === STATE_AD_PAUSED){
+
+            }else if(ads && ads.isAutoPlaySupportCheckTime()){
+                //Do nothing
                 //silence Area!!!
                 //Ads checks checkAutoplaySupport(). It calls real play() and pause() to video element.
                 //And then that triggers "playing" and "pause".
                 //I prevent these process.
             }else{
-                switch(newState){
-                    case STATE_COMPLETE :
-                        that.trigger(PLAYER_COMPLETE);
-                        break;
-                    case STATE_PAUSED :
-                        that.trigger(PLAYER_PAUSE, {
-                            prevState: spec.state,
-                            newstate: STATE_PAUSED
-                        });
-                        break;
-                    case STATE_AD_PAUSED :
-                        that.trigger(PLAYER_PAUSE, {
-                            prevState: spec.state,
-                            newstate: STATE_AD_PAUSED
-                        });
-                        break;
-                    case STATE_PLAYING :
-                        that.trigger(PLAYER_PLAY, {
-                            prevState: spec.state,
-                            newstate: STATE_PLAYING
-                        });
-                    case STATE_AD_PLAYING :
-                        that.trigger(PLAYER_PLAY, {
-                            prevState: spec.state,
-                            newstate: STATE_AD_PLAYING
-                        });
-                        break;
-                }
-                spec.state = newState;
-                that.trigger(PLAYER_STATE, {
-                    prevstate : prevState,
-                    newstate: spec.state
-                });
-            }
+                triggerSatatus();
+            }*/
         }
     };
     that.getState = () =>{
@@ -247,21 +260,26 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
     };
 
     that.play = () =>{
+        OvenPlayerConsole.log("Provider : play()");
         if(!elVideo){
             return false;
         }
         if(isPlayingProcessing){
             return false;
         }
+
         isPlayingProcessing = true;
         if(that.getState() !== STATE_PLAYING){
             if (  (ads && ads.isActive()) || (ads && !ads.started()) ) {
                 ads.play().then(_ => {
                     //ads play success
                     isPlayingProcessing = false;
+                    OvenPlayerConsole.log("Provider : ads play success");
+
                 }).catch(error => {
                     //ads play fail maybe cause user interactive less
                     isPlayingProcessing = false;
+                    OvenPlayerConsole.log("Provider : ads play fail", error);
                 });
 
             }else{
@@ -269,6 +287,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                 if (promise !== undefined) {
                     promise.then(function(){
                         isPlayingProcessing = false;
+                        OvenPlayerConsole.log("Provider : video play success");
                         /*
                         if(mutedPlay){
                             that.trigger(PLAYER_WARNING, {
@@ -281,6 +300,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                             });
                         }*/
                     }).catch(error => {
+                        OvenPlayerConsole.log("Provider : video play error", error.message);
 
                         isPlayingProcessing = false;
                         /*
@@ -292,6 +312,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                     });
                 }else{
                     //IE promise is undefinded.
+                    OvenPlayerConsole.log("Provider : video play success (ie)");
                     isPlayingProcessing = false;
                 }
 
@@ -301,6 +322,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
 
     }
     that.pause = () =>{
+        OvenPlayerConsole.log("Provider : pause()");
         if(!elVideo){
             return false;
         }
@@ -366,7 +388,7 @@ const Provider = function (spec, playerConfig, onExtendedLoad){
                 playerConfig.setSourceIndex(sourceIndex);
                 //playerConfig.setSourceLabel(spec.sources[sourceIndex].label);
                 //spec.currentQuality = sourceIndex;
-                that.pause();
+                //that.pause();
                 that.setState(STATE_IDLE);
                 if(needProviderChange){
                     _load(elVideo.currentTime || 0);
