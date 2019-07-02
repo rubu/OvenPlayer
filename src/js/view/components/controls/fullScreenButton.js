@@ -5,6 +5,7 @@ import OvenTemplate from "view/engine/OvenTemplate";
 import LA$ from "utils/likeA$";
 import {
     AD_CHANGED,
+    STATE_AD_COMPLETE,
     STATE_AD_LOADED,
     STATE_AD_PLAYING,
     STATE_AD_PAUSED,
@@ -17,6 +18,10 @@ import {
 const FullScreenButton = function($container, api){
     const $root = LA$("#"+api.getContainerId());
     let $iconExpand = "", $iconCompress = "", isFullScreen = false;
+
+    //ToDo : Template have to access Player Config.
+    let config = api.getConfig();
+
     let browserInfo = api.getBrowser();
     let isIos = browserInfo.os === "iOS"; // && browserInfo.browser === "Safari";
     let isAndroid = browserInfo.os === "Android";
@@ -30,10 +35,11 @@ const FullScreenButton = function($container, api){
         MSFullscreenChange : "MSFullscreenChange"
     };
     const checkFullScreen = function(){
-        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || config.isFullscreen;
     };
 
-    const fullScreenChangedCallback = function(){
+    const resetFullscreenButtonState = function(){
+        OvenPlayerConsole.log("FULLSCREEN STATE : ", checkFullScreen());
         if (checkFullScreen()) {
             $root.addClass("ovp-fullscreen");
             isFullScreen = true;
@@ -45,6 +51,11 @@ const FullScreenButton = function($container, api){
             $iconExpand.show();
             $iconCompress.hide();
         }
+    };
+
+    const fullScreenChangedCallback = function(){
+        console.log("FULLSCREEN CHANGED CALLBACK!");
+        resetFullscreenButtonState();
         api.trigger(PLAYER_FULLSCREEN_CHANGED, isFullScreen);
     };
 
@@ -154,6 +165,8 @@ const FullScreenButton = function($container, api){
         if(promise){
             promise.then(function(){
                 isForceMode = false;
+                //config.setFullscreen(true);
+                config.isFullscreen = true;
             }).catch(function(error){
                 //This means to look like for fullscreen.
                 isForceMode = true;
@@ -185,6 +198,7 @@ const FullScreenButton = function($container, api){
         } else {
             // TODO(rock): warn not supported
         }
+        config.isFullscreen = false;
     }
     let toggleFullScreen = function () {
 
@@ -202,6 +216,8 @@ const FullScreenButton = function($container, api){
     const onRendered = function($current, template){
         $iconExpand = $current.find(".op-fullscreen-expand");
         $iconCompress = $current.find(".op-fullscreen-compress");
+
+        resetFullscreenButtonState();
 
         fullscreenChagedEventName = findFullScreenChangedEventName();
         if(fullscreenChagedEventName){
@@ -232,22 +248,20 @@ const FullScreenButton = function($container, api){
                 }
             }
         }, template);
-
-
     };
+
+
     const onDestroyed = function(template){
         if(fullscreenChagedEventName){
             document.removeEventListener(fullscreenChagedEventName, fullScreenChangedCallback);
         }
-
         api.off(AD_CHANGED, null, template);
     };
     const events = {
         "click .ovp-fullscreen-button" : function(event, $current, template){
             event.preventDefault();
-                api.trigger(PLAYER_FULLSCREEN_REQUEST, null);
-                toggleFullScreen();
-
+            api.trigger(PLAYER_FULLSCREEN_REQUEST, null);
+            toggleFullScreen();
         }
     };
 
