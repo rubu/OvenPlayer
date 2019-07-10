@@ -72,6 +72,7 @@ const Ad = function(elVideo, provider, playerConfig, adTagUrl){
     let vastTracker = null;
     let ad = null;
 
+
     const OnAdError = function(error){
         console.log(error);
         adsErrorOccurred = true;
@@ -102,6 +103,10 @@ const Ad = function(elVideo, provider, playerConfig, adTagUrl){
                 OvenPlayerConsole.log("VAST : media url : ", videoURL);
             }
             elAdVideo.src = videoURL;
+
+            //keep volume even if playlist item changes.
+            elAdVideo.volume = elVideo.volume;
+            elAdVideo.muted = elVideo.muted;
 
         }).catch(function(error){
             OnAdError(error);
