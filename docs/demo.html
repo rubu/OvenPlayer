@@ -106,6 +106,14 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row mdb-2">
+                            <div class="col-12">
+                                <h5>Recent Streams</h5>
+                                <div id="history">
+
+                                </div>
+                            </div>
+                        </div>
                         <div class="card mb-2" v-for="(source, index) in sources">
                             <div class="card-body">
                                 <strong>{{ source.type }}</strong> {{ source.file }}
@@ -295,13 +303,44 @@ player = OvenPlayer.create("player", {
             sources: preSources || [],
             sourceId: 0,
             errorMessage: "",
-            exportUrl: preSources ? window.location.protocol + "//" + location.host + location.pathname  + "?sources=" + encodeURIComponent(JSON.stringify(preSources)) : ""
+            exportUrl: preSources ? window.location.protocol + "//" + location.host + location.pathname  + "?sources=" + encodeURIComponent(JSON.stringify(preSources)) : "",
+            historyLength: 5
         },
         methods: {
             setProtocol: function(protocol) {
                 this.choicedProtocol = protocol;
             },
+            updateSourceHistory: function() {
+                let history = JSON.parse(localStorage.getItem("history"));
+                history = Array.isArray(history) ? history : [];
+                const url = this.url;
+                const index = history.findIndex(element => element == url);
+                if (history.length >= this.historyLength) {
+                    history.splice(index, 1);
+                    if (histroy.length >= this.historyLength) {
+
+                    }
+                }
+                history.unshift(this.url);
+                localStorage.setItem("history", JSON.stringify(history));
+            },
+            refreshHistory: function() {
+                $("#history").empty();
+                let history = JSON.parse(localStorage.getItem("history"));
+                history = Array.isArray(history) ? history : [];
+                if (history) {
+                    history.forEach(stream => {
+                        $("#history").append($(`<div><a href="${stream}" onclick="navigation.addSourceFromHistory(this); return false">${stream}</a></div>`));
+                    });
+                }
+            },
+            addSourceFromHistory: function (target) {
+                this.url = target.href;
+                this.addSource();
+            },
             addSource: function() {
+                this.updateSourceHistory(this.url);
+                this.refreshHistory();
                 let type = "",
                     data = {},
                     isMixedContentProblem = false;
@@ -443,6 +482,7 @@ player = OvenPlayer.create("player", {
             }
         }
     });
+    navigation.refreshHistory();
     </script>
 </body>
 
