@@ -315,13 +315,13 @@ player = OvenPlayer.create("player", {
                 history = Array.isArray(history) ? history : [];
                 const url = this.url;
                 const index = history.findIndex(element => element == url);
-                if (history.length >= this.historyLength) {
+                if (index != -1 || history.length >= this.historyLength) {
                     history.splice(index, 1);
-                    if (histroy.length >= this.historyLength) {
-
-                    }
                 }
                 history.unshift(this.url);
+                if (history.length > this.historyLength) {
+                    history.splice(-1, history.length - this.historyLength);
+                }
                 localStorage.setItem("history", JSON.stringify(history));
             },
             refreshHistory: function() {
