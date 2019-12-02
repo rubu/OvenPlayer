@@ -314,8 +314,8 @@ player = OvenPlayer.create("player", {
                 let history = JSON.parse(localStorage.getItem("history"));
                 history = Array.isArray(history) ? history : [];
                 const url = this.url;
-                const index = history.findIndex(element => element == url);
-                if (index != -1 || history.length >= this.historyLength) {
+                const index = history.findIndex(element => element === url);
+                if (index !== -1 || history.length >= this.historyLength) {
                     history.splice(index, 1);
                 }
                 history.unshift(this.url);
@@ -330,20 +330,21 @@ player = OvenPlayer.create("player", {
                 history = Array.isArray(history) ? history : [];
                 if (history) {
                     history.forEach(stream => {
-                        $("#history").append($(`<div><a href="${stream}" onclick="navigation.addSourceFromHistory(this); return false">${stream}</a></div>`));
+                        const div = document.createElement("div");
+                        div.onclick = navigation.addSourceFromHistory.bind(this, stream);
+                        div.innerText = stream;
+                        $("#history").append(div);
                     });
                 }
             },
-            addSourceFromHistory: function (target) {
-                this.url = target.href;
+            addSourceFromHistory: function (stream) {
+                this.url = stream;
                 this.addSource();
             },
             addSource: function() {
                 this.updateSourceHistory(this.url);
                 this.refreshHistory();
-                let type = "",
-                    data = {},
-                    isMixedContentProblem = false;
+                let isMixedContentProblem = false;
                 const findProtocol = function(url) {
                     let protocol = "Protocol";
                     if (url.indexOf('rtmp:') === 0) {
@@ -398,7 +399,6 @@ player = OvenPlayer.create("player", {
                 this.sources.push(sources1);
                 this.errorMessage = "";
                 this.choicedProtocol = "Protocol";
-                this.url = "";
 
                 if (this.sources) {
 
