@@ -216,7 +216,7 @@ const WebRTCLoader = function (provider, webSocketUrl, loadCallback, errorTrigge
         }
 
         peerConnection.onicecandidate = function (e) {
-            if (e.candidate) {
+            if (e.candidate && e.candidate && e.candidate.length > 0) {
 
                 OvenPlayerConsole.log("WebRTCLoader send candidate to server : " + e.candidate);
 
